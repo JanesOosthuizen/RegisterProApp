@@ -12,6 +12,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.digibit.registerpro",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -36,6 +37,23 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "688f74bf-d26e-46e7-88a4-d1beb00daf61"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+		"enabled": true,
+		"checkAutomatically": "ON_LOAD",
+		"fallbackToCacheTimeout": 0,
+		"url": "https://u.expo.dev/688f74bf-d26e-46e7-88a4-d1beb00daf61"
     }
   }
 }
