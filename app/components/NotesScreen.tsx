@@ -166,13 +166,14 @@ const NotesScreen: React.FC<NotesScreenProps> = ({ route, navigation }) => {
 			<Text style={styles.addButtonText}>Add Note</Text>
 		</TouchableOpacity>
 	</View>
+	<ScrollView>
       <View style={styles.tableContainer}>
         <View style={styles.tableHeader}>
           <Text style={styles.headerText}>Date</Text>
           <Text style={styles.headerText}>Content</Text>
           <Text style={styles.headerText}>Actions</Text>
         </View>
-        <ScrollView>
+        
           {notes.map((note) => (
             <View key={note.id} style={styles.tableRow}>
               <Text style={styles.rowText}>{note.date}</Text>
@@ -193,8 +194,8 @@ const NotesScreen: React.FC<NotesScreenProps> = ({ route, navigation }) => {
               </View>
             </View>
           ))}
-        </ScrollView>
       </View>
+	  </ScrollView>
       <View style={styles.addNoteContainer}>
 	  <Modal
         visible={isModalVisible}

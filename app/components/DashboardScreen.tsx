@@ -9,6 +9,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Modal,
+  Pressable,
+  GestureResponderEvent
 } from "react-native";
 
 import { Picker } from "@react-native-picker/picker";
@@ -74,7 +77,62 @@ export const DashboardScreen: React.FC = () => {
 	const [isEmailModalVisible, setIsEmailModalVisible] = useState(false); // Controls email modal visibility
 	const [emailAddress, setEmailAddress] = useState(''); // Store the email address
 	const [emailError, setEmailError] = useState(''); // To handle email validation errors
+	const [isDeleting, setIsDeleting] = useState(false);
 
+	const [menuVisible, setMenuVisible] = useState(false);
+  	const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+
+	const handleLongPress =  (rowIndex: number, columnIndex: number) => (event: GestureResponderEvent) => {
+		const { pageX, pageY } = event.nativeEvent;
+		
+		// Estimate menu height (e.g., 2 items * 50px + padding) and add a buffer
+		const estimatedMenuHeight = 100; // Adjust based on your ContextMenu height
+		const buffer = 20; // Space between finger and menu
+		const adjustedY = pageY - estimatedMenuHeight - buffer;
+		
+		const cellKey = `${rowIndex}-${columnIndex}`;
+		const cellContent = cellData[cellKey] || {};
+	
+		if (cellContent.className) {
+			const selectedClass = classes.find((cls) => cls.name === cellContent.className);
+			if (selectedClass) {
+			fetchPupilsByClass(selectedClass.id);
+			}
+		}
+	
+		if (cellContent.className) {
+			const selectedClass = classes.find((cls) => cls.name === cellContent.className);
+			if (selectedClass) {
+			  fetchPupilsByClass(selectedClass.id);
+			  setSelectedClassId(selectedClass.id); // Set the selected class for the picker
+			} else {
+			  setSelectedClassId(undefined); // Reset if no matching class is found
+			}
+		  } else {
+			setSelectedClassId(undefined); // Reset if no class is set
+		  }
+		
+		  if (cellContent.subjectName) {
+			const selectedSubject = subjects.find((sub) => sub.name === cellContent.subjectName);
+			if (selectedSubject) {
+			  setSelectedSubjectId(selectedSubject.id); // Set the selected subject for the picker
+			} else {
+			  setSelectedSubjectId(undefined); // Reset if no matching subject is found
+			}
+		  } else {
+			setSelectedSubjectId(undefined); // Reset if no subject is set
+		  }
+
+		// Set position, keeping x centered and y above the press
+		setMenuPosition({ x: pageX, y: adjustedY });
+		setMenuVisible(true);
+		// setIsCellSlideOutVisible(true);
+	};
+
+	const handleMenuSelect = (option: any) => {
+		console.log(`Selected: ${option}`);
+		setMenuVisible(false); // Close the menu after selection
+	};
 
   useEffect(() => {
     fetchClassesAndSubjects();
@@ -317,6 +375,28 @@ export const DashboardScreen: React.FC = () => {
 	// fetchPlanningItems(cellKey);
   };
 
+  const handleDelete = async (row: number, column: number) => {
+    // Confirm before making the API call
+	console.log('delete');
+    // const confirmDelete = window.confirm('Are you sure you want to delete this assignment?');
+    // if (!confirmDelete) return;
+
+    setIsDeleting(true);
+
+    try {
+	  const response = await apiClient.delete(`/cell-assignments/${row}-${column}`); 
+	  fetchClassesAndSubjects();
+		fetchHeaders();
+		fetchCellData();
+	  	setIsCellSlideOutVisible(false)
+    	// Alert.alert('Success');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete the assignment. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const saveCellAssignment = async () => {
     if (!selectedCell) {
       Alert.alert("Error", "No cell selected.");
@@ -427,7 +507,7 @@ export const DashboardScreen: React.FC = () => {
 		<TouchableOpacity
 		style={styles.exportButton} 
 		onPress={handleExport}>
-		<Text style={styles.exportButtonText}>Export to PDF</Text>
+		{/* <Text style={styles.exportButtonText}>Export to PDF</Text> */}
 		</TouchableOpacity>
       </View>
       <ScrollView horizontal>
@@ -463,6 +543,7 @@ export const DashboardScreen: React.FC = () => {
                     key={`cell-${rowIndex}-${columnIndex}`}
                     style={[styles.cell, styles.largeCell]}
 					onPress={() => handleCellPress(rowIndex, columnIndex)}
+					onLongPress={handleLongPress(rowIndex, columnIndex)}
                   >
 					{shouldShowCellContent(cellContent.className) ? (
                         <>
@@ -528,6 +609,41 @@ export const DashboardScreen: React.FC = () => {
           )}
         </KeyboardAvoidingView>
       </View>
+
+	  <Modal
+        transparent={true}
+        visible={menuVisible}
+        onRequestClose={() => setMenuVisible(false)} // Android back button support
+      >
+        <Pressable
+          style={styles.overlay}
+          onPress={() => setMenuVisible(false)} // Close on outside tap
+        >
+          <View
+            style={[
+              styles.contextMenu,
+              { top: menuPosition.y, left: menuPosition.x },
+            ]}
+          >
+            {/* <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+				setMenuVisible(false)
+				setIsCellSlideOutVisible(true)
+			  	}
+			  }
+            >
+              <Text>Option 1</Text>
+            </TouchableOpacity> */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleMenuSelect('Option 2')}
+            >
+              <Text>Planning</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
 
 	  {/* Cell Slide-Out Drawer */}
       <View style={[styles.slideOutContainer, isCellSlideOutVisible ? styles.visible : styles.hidden]}>
@@ -624,10 +740,22 @@ export const DashboardScreen: React.FC = () => {
 					</View>
 					))}
 					<TouchableOpacity
-					style={styles.editButton}
-					onPress={() => setIsEditing(true)}
+						style={styles.editButton}
+						onPress={() => setIsEditing(true)}
 					>
-					<Text style={styles.editButtonText}>Edit</Text>
+						<Text style={styles.editButtonText}>Edit</Text>
+					</TouchableOpacity>
+					<TouchableOpacity
+						// title={isDeleting ? 'Deleting...' : 'Delete Assignment'}
+						style={styles.deleteButton}
+						onPress={() => {
+							if (selectedCell) {
+								handleDelete(selectedCell.row, selectedCell.column)
+							}
+						}}
+						disabled={isDeleting}
+					>
+						<Text style={styles.deleteButtonText}>{isDeleting ? 'Deleting...' : 'Delete Cell Data'}</Text>
 					</TouchableOpacity>
 				</>
 			)}
@@ -643,6 +771,12 @@ const styles = StyleSheet.create({
   contentContainer: { paddingBottom: 20, marginBottom: 20 },  
   tableContainer: { flexDirection: "column", marginTop: 20 },
   row: { flexDirection: "row" },
+  deleteButton: {
+	padding: 15,
+	backgroundColor: theme.colors.error,
+	marginTop: 20,
+	borderRadius: 8,
+  },
   cell: {
     padding: 10,
     flex: 1,
@@ -660,6 +794,11 @@ const styles = StyleSheet.create({
   },
   exportButton: {
 	
+  },
+  deleteButtonText: {
+	textAlign: "center",
+	color: "#fff",
+	fontWeight: "bold",
   },
   exportButtonText: {
 	color: theme.colors.textLight,
@@ -785,6 +924,27 @@ const styles = StyleSheet.create({
   filterLabel: { fontSize: 16, marginRight: 10, color: theme.colors.textLight, },
   picker: { flex: 1, color: theme.colors.textLight, paddingVertical:0, marginVertical:0 },
   hiddenContent: { height: 0 },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)', // Semi-transparent background
+  },
+  contextMenu: {
+    position: 'absolute',
+	display: 'flex',
+	flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5, // For Android shadow
+  },
+  menuItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
 });
 
 export default DashboardScreen;
