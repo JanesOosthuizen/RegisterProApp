@@ -12,7 +12,7 @@ const apiClient = axios.create({
 // Add a request interceptor
 apiClient.interceptors.request.use(
 	async (config) => {
-		const token = typeof window! == "undefined" ? await AsyncStorage.getItem("token") : null; // Retrieve token
+		const token = typeof window !== "undefined" ? await AsyncStorage.getItem("token") : null; // Retrieve token
 		if (token) {
 			config.headers.Authorization = `Bearer ${token}`; // Add token to headers
 		}
