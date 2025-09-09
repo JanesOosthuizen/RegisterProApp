@@ -78,6 +78,10 @@ const LoginScreen: React.FC<{ navigation: StackOnlyNavigationProps<'Login'> }> =
 
 			// Save the token from the response
 			const { access_token } = response.data;
+
+			if (typeof window === "undefined") {
+				return null;
+			}
 			await AsyncStorage.setItem("token", access_token);
 
 			// Redirect to Dashboard
@@ -134,6 +138,9 @@ const LogoutScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 	const handleLogout = async () => {
 		try {
 			// Clear the stored token
+			if (typeof window === "undefined") {
+				return null;
+			}
 			await AsyncStorage.removeItem("token");
 
 			// Navigate back to the login screen
